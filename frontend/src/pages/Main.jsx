@@ -50,6 +50,8 @@ const Main = () => {
   const [selectedOption, setSelectedOption] = useState(null);
   //question correct
   const [correctOption, setCorrectOption] = useState(false);
+  const [playerName, setPlayerName] = useState("Joueur 1");
+  const [leaderboard, setLeaderboard] = useState([]);
   const playSound = (src) => {
     const audio = new Audio(src);
     audio.play();
@@ -59,7 +61,45 @@ const Main = () => {
     }, 2000);
   };
   const score = parseFloat((100 * finalScore) / Question.length).toFixed(2);
+  // Fonction pour obtenir/sauvegarder les scores dans localStorage
+  const getScoresFromStorage = () => {
+    try {
+      const scores = localStorage.getItem("quizScores");
+      return scores ? JSON.parse(scores) : [];
+    } catch (error) {
+      console.error("Erreur lors de la lecture du localStorage:", error);
+      return [];
+    }
+  };
 
+  const saveScoreToStorage = (playerName, score, totalQuestions) => {
+    try {
+      const scores = getScoresFromStorage();
+      const newScore = {
+        id: Date.now(),
+        name: playerName,
+        score: score,
+        total: totalQuestions,
+        percentage: ((score / totalQuestions) * 100).toFixed(1),
+        date: new Date().toLocaleDateString("fr-FR"),
+      };
+
+      scores.push(newScore);
+      // Trier par score décroissant
+      scores.sort((a, b) => b.score - a.score);
+
+      localStorage.setItem("quizScores", JSON.stringify(scores));
+      return scores;
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde dans localStorage:", error);
+      return [];
+    }
+  };
+  // Charger le classement au démarrage
+  useEffect(() => {
+    const scores = getScoresFromStorage();
+    setLeaderboard(scores);
+  }, []);
   useEffect(() => {
     let timer;
     if (stepper2) {
@@ -155,6 +195,13 @@ const Main = () => {
         setSelectedOption(null);
         setCorrectOption(false);
         //setFinalScore(0);
+        // Sauvegarder le score actuel même en cas d'échec
+        const updatedLeaderboard = saveScoreToStorage(
+          playerName,
+          finalScore,
+          Question.length
+        );
+        setLeaderboard(updatedLeaderboard);
         setStepper3(true);
         setStepper2(false);
         setStepper1(false);
@@ -172,6 +219,13 @@ const Main = () => {
             {Question.length}
           </h2>
           {setTimeout(() => {
+            // Sauvegarder le score actuel même en cas d'échec
+            const updatedLeaderboard = saveScoreToStorage(
+              playerName,
+              finalScore,
+              Question.length
+            );
+            setLeaderboard(updatedLeaderboard);
             setStepper3(true);
             setStepper2(false);
             setStepper1(false);
@@ -198,6 +252,12 @@ const Main = () => {
       setCurrentQuestionIndex(0);
       setFinalScore(0);
     }, 1000);
+  };
+  const getOrdinal = (position) => {
+    if (position === 1) return "1er";
+    if (position === 2) return "2eme";
+    if (position === 3) return "3eme";
+    return `${position}eme`;
   };
 
   return (
@@ -235,12 +295,21 @@ const Main = () => {
                 <p>{textencouragement}</p>
               </div>
             )}
-            <div className="" style={{ padding: "40px 0" }}>
-              <p>
-                {finalScore}/{Question.length}
-              </p>
-              <p>{userResponse}</p>
-              <p>{Question[currentQuestionIndex].topic}</p>
+            <div
+              className=""
+              style={{ padding: "40px 0", position: "relative" }}
+            >
+              <div className="sujet">
+                <p>
+                  <span>{finalScore < 9 ? "0" + finalScore : finalScore}</span>/
+                  {Question.length}
+                </p>
+
+                <p>
+                  {Question[currentQuestionIndex].topic}:{userResponse}
+                </p>
+              </div>
+
               <p className="question">
                 {Question[currentQuestionIndex].question}
               </p>
@@ -283,13 +352,36 @@ const Main = () => {
             </div>
 
             <div className="nameclassement" style={{ padding: "0px 0" }}>
-              <p>1er dimitri</p>
-              <p>2eme jacques</p>
-              <p>3eme jean</p>
-              <p>4eme marie</p>
-              <p>5eme paul</p>
-              <p>6eme pierre</p>
-              <p>7eme jacques</p>
+              {leaderboard.map((player, index) => (
+                <div
+                  key={player.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px",
+                    margin: "5px 0",
+                    background: index < 3 ? "#fff3cd" : "#f8f9fa",
+                    border:
+                      index === 0
+                        ? "2px solid gold"
+                        : index === 1
+                        ? "2px solid silver"
+                        : index === 2
+                        ? "2px solid #cd7f32"
+                        : "1px solid #ddd",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <span style={{ fontWeight: "bold" }}>
+                    {getOrdinal(index + 1)} {player.name}
+                  </span>
+                  <span>
+                    {player.score}/{player.total} ({player.percentage}%) -{" "}
+                    {player.date}
+                  </span>
+                </div>
+              ))}
             </div>
             <div className="topic-button">
               <Button className="choice" onClick={handlenext2}>

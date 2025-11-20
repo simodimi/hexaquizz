@@ -126,3 +126,15 @@
   scrollbar-width: thin;
   text-align: center;
 }
+.sujet {
+  text-align: center;
+}
+.sujet p:nth-child(2) {
+  font-size: 24px;
+  font-weight: bold;
+  padding: 10px 0px;
+  text-decoration: underline;
+}
+.sujet span {
+  color: green;
+}
