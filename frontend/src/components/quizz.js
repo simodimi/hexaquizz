@@ -1,3 +1,12 @@
+import img1 from "../assets/img1.png";
+import img2 from "../assets/img2.png";
+import img3 from "../assets/img3.png";
+
+export const dessins = [
+  { id: 1, photo: img1 },
+  { id: 2, photo: img2 },
+  { id: 3, photo: img3 },
+];
 export const Quizz = [
   {
     id: 1,

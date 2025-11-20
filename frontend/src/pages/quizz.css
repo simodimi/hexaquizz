@@ -1,0 +1,128 @@
+.Quizbtn {
+  border-radius: 15px;
+  border: none;
+  color: white;
+  padding: 20px 50px;
+  text-align: center;
+  font-size: 18px;
+  margin: 15px 0px;
+  cursor: pointer;
+  height: 100%;
+  width: 100%;
+}
+.Quizbtn.choice {
+  background-color: #2196f3;
+}
+.Quizbtn.accept {
+  background-color: #4caf50 !important;
+}
+.Quizbtn.decline {
+  background-color: #f44336 !important;
+}
+.Quizbtn.decline:hover {
+  background-color: #d32f2f;
+}
+.Quizbtn.accept:hover {
+  background-color: #388e3c;
+}
+
+.Quizbtn.choice:hover {
+  background-color: #388e3c;
+}
+
+.headerQuiz {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #2196f3;
+  position: relative;
+}
+.headerstep {
+  width: 50%;
+  height: auto;
+  background-color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  border-radius: 15px;
+}
+.response {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr !important;
+  gap: 20px;
+  padding: 50px 30px !important;
+}
+.question {
+  text-align: center;
+  font-size: 24px;
+}
+.topics-list {
+  font-family: "Sacramento", cursive;
+  font-size: 34px;
+}
+.topic-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.iconemessage {
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  margin: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.imageuser {
+  background-color: azure;
+  border-radius: 50px;
+  width: 100px;
+  height: 100px;
+}
+.imageuser img {
+  width: 100%;
+  height: 100%;
+}
+.iconemessage p {
+  min-width: 200px;
+  background-color: azure;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0px 20px 20px 15px;
+  text-align: justify;
+  padding: 10px 20px;
+}
+.classement {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 50px 30px !important;
+}
+.nameclassement {
+  font-family: "roboto";
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #e9af11;
+  width: 100%;
+  height: 280px;
+  padding: 20px !important;
+  border-radius: 5px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  text-align: center;
+}
