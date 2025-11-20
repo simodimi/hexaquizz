@@ -1,12 +1,31 @@
-import React, { use, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Button from "../components/Button";
 import { dessins, Quizz } from "../components/quizz";
 import zik from "../assets/appuiebtn.mp3";
 import zik1 from "../assets/zikcorrect.mp3";
 import zik2 from "../assets/zikerror.mp3";
 import star from "../assets/star.png";
+const topics = [
+  "Histoire",
+  "Valeurs républicaines",
+  "Institutions",
+  "Politique",
+  "Géographie",
+  "Culture",
+  "Patrimoine",
+];
+//function pour melanger les questions
 function shuffleArray(array) {
   return [...array].sort(() => Math.random() - 0.5);
+}
+//function pour avoir 5questions par topic
+function getQuestionsByTopic(topic) {
+  const serie = [];
+  topics.forEach((elt) => {
+    const questiontopic = Quizz.filter((p) => p.topic === elt);
+    serie.push(...questiontopic.slice(0, 5)); //slice(0,5) pour avoir 5 questions
+  });
+  return shuffleArray(serie);
 }
 //function pour retourner une image
 function affichageimage(array) {
@@ -14,13 +33,17 @@ function affichageimage(array) {
   return array[rand];
 }
 const Main = () => {
-  const [Question] = useState(shuffleArray(Quizz));
-  const image = affichageimage(dessins);
+  const allQuestions = getQuestionsByTopic();
+  const [Question, setQuestion] = useState(shuffleArray(allQuestions));
+  const [image, setimage] = useState(affichageimage(dessins));
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [finalScore, setFinalScore] = useState(0);
   const [stepper1, setStepper1] = useState(true);
   const [stepper2, setStepper2] = useState(false);
   const [stepper3, setStepper3] = useState(false);
+  //show message
+  const [showMessage, setShowMessage] = useState(false);
+  const [textencouragement, settextencouragement] = useState("");
   //reponse
   const [userResponse, setUserResponse] = useState("");
   //selection de la reponse
@@ -35,6 +58,77 @@ const Main = () => {
       audio.currentTime = 0;
     }, 2000);
   };
+  const score = parseFloat((100 * finalScore) / Question.length).toFixed(2);
+
+  useEffect(() => {
+    let timer;
+    if (stepper2) {
+      if (finalScore === 0) {
+        setShowMessage(true);
+        settextencouragement("Allez joueur 1 on vise le sommet de la montagne");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 5) {
+        setShowMessage(true);
+        settextencouragement("courage joueur 1 tu avance bien!");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 10) {
+        setShowMessage(true);
+        settextencouragement(
+          "quelle performance joueur 1 tu avances beaucoup!"
+        );
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 15) {
+        setShowMessage(true);
+        settextencouragement("bravo joueur 1,bientôt la moitié du sommet!");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 20) {
+        setShowMessage(true);
+        settextencouragement("bravo joueur 1,tu es un monstre!");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 25) {
+        setShowMessage(true);
+        settextencouragement("oh lalala joueur 1,quelle prouesse!");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 30) {
+        setShowMessage(true);
+        settextencouragement(
+          "rien à dire,bravo joueur 1,un petit effort pour le sommet"
+        );
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      if (finalScore === 35) {
+        setShowMessage(true);
+        settextencouragement("fin des temps ");
+        timer = setTimeout(() => {
+          setShowMessage(false);
+        }, 3000);
+      }
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [stepper2, finalScore]);
+
   const handlechoice = (option) => {
     if (selectedOption) {
       return; //empeche de choisir plusieurs fois
@@ -60,18 +154,30 @@ const Main = () => {
         setUserResponse("");
         setSelectedOption(null);
         setCorrectOption(false);
-        //setCurrentQuestionIndex(0);
         //setFinalScore(0);
         setStepper3(true);
         setStepper2(false);
         setStepper1(false);
+        setQuestion(getQuestionsByTopic());
+        setimage(affichageimage(dessins));
       }, 2000);
+
+      console.log("score en pourcentage", score);
     }
     if (currentQuestionIndex >= Question.length) {
       return (
-        <h2>
-          vous avez termine le quiz,score: {finalScore}/{Question.length}
-        </h2>
+        <div>
+          <h2>
+            vous avez termine le quiz joueur 1,score: {finalScore}/
+            {Question.length}
+          </h2>
+          {setTimeout(() => {
+            setStepper3(true);
+            setStepper2(false);
+            setStepper1(false);
+            setimage(affichageimage(dessins));
+          }, 2000)}
+        </div>
       );
     }
   };
@@ -89,6 +195,8 @@ const Main = () => {
       setStepper1(false);
       setStepper2(true);
       setStepper3(false);
+      setCurrentQuestionIndex(0);
+      setFinalScore(0);
     }, 1000);
   };
 
@@ -119,19 +227,20 @@ const Main = () => {
         )}
         {stepper2 && (
           <div className="">
-            <div className="iconemessage">
-              <div className="imageuser">
-                <img src={image.photo} alt="" />
+            {showMessage && (
+              <div className="iconemessage">
+                <div className="imageuser">
+                  <img src={image.photo} alt="" />
+                </div>
+                <p>{textencouragement}</p>
               </div>
-              <p>
-                allez tu peux le faire ,joueur 1 tu ess à la moitié du parcours
-              </p>
-            </div>
+            )}
             <div className="" style={{ padding: "40px 0" }}>
               <p>
                 {finalScore}/{Question.length}
               </p>
               <p>{userResponse}</p>
+              <p>{Question[currentQuestionIndex].topic}</p>
               <p className="question">
                 {Question[currentQuestionIndex].question}
               </p>
