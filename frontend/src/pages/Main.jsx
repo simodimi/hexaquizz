@@ -19,12 +19,22 @@ function shuffleArray(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 //function pour avoir 5questions par topic
-function getQuestionsByTopic(topic) {
+function getQuestionsByTopic() {
   const serie = [];
+
   topics.forEach((elt) => {
     const questiontopic = Quizz.filter((p) => p.topic === elt);
-    serie.push(...questiontopic.slice(0, 5)); //slice(0,5) pour avoir 5 questions
+
+    if (questiontopic.length <= 5) {
+      // Si moins de 5 questions, prendre toutes
+      serie.push(...questiontopic);
+    } else {
+      // Prendre 5 questions aléatoires
+      const shuffled = shuffleArray(questiontopic);
+      serie.push(...shuffled.slice(0, 5));
+    }
   });
+
   return shuffleArray(serie);
 }
 //function pour retourner une image
@@ -50,8 +60,11 @@ const Main = () => {
   const [selectedOption, setSelectedOption] = useState(null);
   //question correct
   const [correctOption, setCorrectOption] = useState(false);
-  const [playerName, setPlayerName] = useState("Joueur 1");
+  const [playerName, setPlayerName] = useState();
   const [leaderboard, setLeaderboard] = useState([]);
+  // Vérifier si c'est la dernière question
+  const isLastQuestion = currentQuestionIndex >= Question.length - 1;
+  const quizFinished = currentQuestionIndex >= Question.length;
   const playSound = (src) => {
     const audio = new Audio(src);
     audio.play();
@@ -77,7 +90,7 @@ const Main = () => {
       const scores = getScoresFromStorage();
       const newScore = {
         id: Date.now(),
-        name: playerName,
+        playerName: playerName,
         score: score,
         total: totalQuestions,
         percentage: ((score / totalQuestions) * 100).toFixed(1),
@@ -105,14 +118,16 @@ const Main = () => {
     if (stepper2) {
       if (finalScore === 0) {
         setShowMessage(true);
-        settextencouragement("Allez joueur 1 on vise le sommet de la montagne");
+        settextencouragement(
+          `Allez ${userData.nameuser}, on vise le sommet de la montagne!`
+        );
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
       }
       if (finalScore === 5) {
         setShowMessage(true);
-        settextencouragement("courage joueur 1 tu avance bien!");
+        settextencouragement(`courage ${userData.nameuser},tu avance bien!`);
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
@@ -120,7 +135,7 @@ const Main = () => {
       if (finalScore === 10) {
         setShowMessage(true);
         settextencouragement(
-          "quelle performance joueur 1 tu avances beaucoup!"
+          `quelle performance ${userData.nameuser}, tu avances beaucoup!`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -128,21 +143,23 @@ const Main = () => {
       }
       if (finalScore === 15) {
         setShowMessage(true);
-        settextencouragement("bravo joueur 1,bientôt la moitié du sommet!");
+        settextencouragement(
+          `bravo ${userData.nameuser},bientôt la moitié du sommet!`
+        );
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
       }
       if (finalScore === 20) {
         setShowMessage(true);
-        settextencouragement("bravo joueur 1,tu es un monstre!");
+        settextencouragement(`bravo ${userData.nameuser},tu es un monstre!`);
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
       }
       if (finalScore === 25) {
         setShowMessage(true);
-        settextencouragement("oh lalala joueur 1,quelle prouesse!");
+        settextencouragement(`oh lalala ${userData.nameuser},quelle prouesse!`);
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
@@ -150,7 +167,7 @@ const Main = () => {
       if (finalScore === 30) {
         setShowMessage(true);
         settextencouragement(
-          "rien à dire,bravo joueur 1,un petit effort pour le sommet"
+          `rien à dire,bravo ${userData.nameuser},un petit effort pour le sommet`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -158,7 +175,7 @@ const Main = () => {
       }
       if (finalScore === 35) {
         setShowMessage(true);
-        settextencouragement("fin des temps ");
+        settextencouragement(`fin des temps `);
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
@@ -170,7 +187,7 @@ const Main = () => {
   }, [stepper2, finalScore]);
 
   const handlechoice = (option) => {
-    if (selectedOption) {
+    if (selectedOption || quizFinished) {
       return; //empeche de choisir plusieurs fois
     }
     setSelectedOption(option);
@@ -185,6 +202,22 @@ const Main = () => {
         setCorrectOption(false);
         setFinalScore(finalScore + 1);
         setCurrentQuestionIndex(currentQuestionIndex + 1);
+        // Vérifier si c'est la dernière question
+        if (isLastQuestion) {
+          // Fin du quiz - réussite
+          const updatedLeaderboard = saveScoreToStorage(
+            playerName,
+            newScore,
+            Question.length
+          );
+          setLeaderboard(updatedLeaderboard);
+          setStepper3(true);
+          setStepper2(false);
+          setStepper1(false);
+        } else {
+          // Passer à la question suivante
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        }
       }, 2000);
     } else {
       playSound(zik2);
@@ -211,7 +244,7 @@ const Main = () => {
 
       console.log("score en pourcentage", score);
     }
-    if (currentQuestionIndex >= Question.length) {
+    /*   if (currentQuestionIndex >= Question.length) {
       return (
         <div>
           <h2>
@@ -221,7 +254,7 @@ const Main = () => {
           {setTimeout(() => {
             // Sauvegarder le score actuel même en cas d'échec
             const updatedLeaderboard = saveScoreToStorage(
-              playerName,
+              //playerName,
               finalScore,
               Question.length
             );
@@ -233,7 +266,7 @@ const Main = () => {
           }, 2000)}
         </div>
       );
-    }
+    }*/
   };
   const handlenext1 = () => {
     playSound(zik);
@@ -251,6 +284,8 @@ const Main = () => {
       setStepper3(false);
       setCurrentQuestionIndex(0);
       setFinalScore(0);
+      setQuestion(getQuestionsByTopic()); // Nouvelles questions
+      setimage(affichageimage(dessins)); // Nouvelle image
     }, 1000);
   };
   const getOrdinal = (position) => {
@@ -259,7 +294,8 @@ const Main = () => {
     if (position === 3) return "3eme";
     return `${position}eme`;
   };
-
+  //appel de localstorage
+  const userData = JSON.parse(localStorage.getItem("user"));
   return (
     <div className="headerQuiz">
       <div className="headerstep">
@@ -280,7 +316,7 @@ const Main = () => {
             </div>
             <div className="topic-button">
               <Button className="choice" onClick={handlenext1}>
-                Commencer le Quiz
+                {`Commencer le Quiz ${userData?.nameuser || ""}`}
               </Button>
             </div>
           </div>
@@ -306,7 +342,7 @@ const Main = () => {
                 </p>
 
                 <p>
-                  {Question[currentQuestionIndex].topic}:{userResponse}
+                  {Question[currentQuestionIndex]?.topic}:{userResponse}
                 </p>
               </div>
 
@@ -374,10 +410,10 @@ const Main = () => {
                   }}
                 >
                   <span style={{ fontWeight: "bold" }}>
-                    {getOrdinal(index + 1)} {player.name}
+                    {getOrdinal(index + 1)} {player.playerName}
                   </span>
                   <span>
-                    {player.score}/{player.total} ({player.percentage}%) -{" "}
+                    {player.score}/{player.total} ({player.percentage}%) -
                     {player.date}
                   </span>
                 </div>
