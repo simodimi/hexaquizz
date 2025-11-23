@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { toast } from "react-toastify";
-
+import axios from "axios";
+import { useAuth } from "../components/AuthContextUser";
 const Inscription = () => {
   const [showerror, setShowerror] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { login } = useAuth();
   const [formdata, setformdata] = useState({
     nameuser: "",
     mailuser: "",
@@ -15,7 +17,7 @@ const Inscription = () => {
   const handlechange = (e) => {
     setformdata({ ...formdata, [e.target.name]: e.target.value });
   };
-  const handlesubmit = (e) => {
+  const handlesubmit = async (e) => {
     e.preventDefault();
     if (!formdata.mailuser || !formdata.nameuser || !formdata.passworduser) {
       setShowerror(true);
@@ -30,28 +32,45 @@ const Inscription = () => {
       toast.error("Veuillez entrer une adresse mail valide");
       return;
     }
-    const userData = {
+    /* const userData = {
       nameuser: formdata.nameuser,
       mailuser: formdata.mailuser,
       passworduser: formdata.passworduser,
       date: new Date().toLocaleDateString("fr-FR"),
     };
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    toast.success(`Inscription reussie ${formdata.nameuser}`);
-    navigate("/jeux");
-    console.log({
-      nameuser: formdata.nameuser,
-      mailuser: formdata.mailuser,
-      passworduser: formdata.passworduser,
-    });
-    setShowerror(false);
-    setErrorMessage("");
-    setformdata({
-      nameuser: "",
-      mailuser: "",
-      passworduser: "",
-    });
+    localStorage.setItem("user", JSON.stringify(userData));*/
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/user/inscription",
+        formdata
+      );
+      if (res.status === 201) {
+        toast.success(`Inscription reussie ${formdata.nameuser}`);
+        try {
+          await login(formdata.mailuser, formdata.passworduser);
+        } catch (error) {
+          console.log(error);
+        }
+        navigate("/jeux");
+        console.log({
+          mailuser: formdata.mailuser,
+          passworduser: formdata.passworduser,
+        });
+        setShowerror(false);
+        setErrorMessage("");
+        setformdata({
+          nameuser: "",
+          mailuser: "",
+          passworduser: "",
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Erreur lors de l'inscription";
+      setShowerror(true);
+      setErrorMessage(errorMessage);
+      toast.error(errorMessage);
+    }
   };
   return (
     <div className="headerQuiz">

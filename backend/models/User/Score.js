@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/bdd");
-const User = require("../models/User");
+const sequelize = require("../../config/bdd");
 
 const Score = sequelize.define("Score", {
   id: {
@@ -18,13 +17,19 @@ const Score = sequelize.define("Score", {
     allowNull: false,
     defaultValue: 0,
   },
+  totalQuestions: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 35,
+  },
   dateplayed: {
     type: DataTypes.DATEONLY,
     defaultValue: DataTypes.NOW,
   },
+  iduser: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 });
-//definir la relation entre User et Score
-User.hasMany(Score, { foreignKey: "iduser", onDelete: "CASCADE" });
-Score.belongsTo(User, { foreignKey: "iduser" });
 
 module.exports = Score;

@@ -5,6 +5,8 @@ import zik from "../assets/appuiebtn.mp3";
 import zik1 from "../assets/zikcorrect.mp3";
 import zik2 from "../assets/zikerror.mp3";
 import star from "../assets/star.png";
+import axios from "axios";
+import { useAuth } from "../components/AuthContextUser";
 const topics = [
   "Histoire",
   "Valeurs républicaines",
@@ -43,6 +45,7 @@ function affichageimage(array) {
   return array[rand];
 }
 const Main = () => {
+  const { user } = useAuth();
   const allQuestions = getQuestionsByTopic();
   const [Question, setQuestion] = useState(shuffleArray(allQuestions));
   const [image, setimage] = useState(affichageimage(dessins));
@@ -74,52 +77,49 @@ const Main = () => {
     }, 2000);
   };
   const score = parseFloat((100 * finalScore) / Question.length).toFixed(2);
-  // Fonction pour obtenir/sauvegarder les scores dans localStorage
-  const getScoresFromStorage = () => {
+
+  const saveScoreToStorage = async (finalScore, totalQuestions) => {
     try {
-      const scores = localStorage.getItem("quizScores");
-      return scores ? JSON.parse(scores) : [];
-    } catch (error) {
-      console.error("Erreur lors de la lecture du localStorage:", error);
-      return [];
-    }
-  };
-
-  const saveScoreToStorage = (playerName, score, totalQuestions) => {
-    try {
-      const scores = getScoresFromStorage();
-      const newScore = {
-        id: Date.now(),
-        playerName: playerName,
-        score: score,
-        total: totalQuestions,
-        percentage: ((score / totalQuestions) * 100).toFixed(1),
-        date: new Date().toLocaleDateString("fr-FR"),
-      };
-
-      scores.push(newScore);
-      // Trier par score décroissant
-      scores.sort((a, b) => b.score - a.score);
-
-      localStorage.setItem("quizScores", JSON.stringify(scores));
-      return scores;
+      const percentage = parseFloat(
+        (100 * finalScore) / totalQuestions
+      ).toFixed(2);
+      const response = await axios.post(
+        "http://localhost:5000/user/save",
+        {
+          score: finalScore,
+          totalQuestions: totalQuestions,
+          percentage: percentage,
+        },
+        { withCredentials: true }
+      );
+      return response.data;
     } catch (error) {
       console.error("Erreur lors de la sauvegarde dans localStorage:", error);
       return [];
     }
   };
-  // Charger le classement au démarrage
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:5000/user/leaderboard"
+      );
+      setLeaderboard(response.data);
+    } catch (error) {
+      console.error("Erreur classement:", error);
+    }
+  };
   useEffect(() => {
-    const scores = getScoresFromStorage();
-    setLeaderboard(scores);
-  }, []);
+    if (stepper3) fetchLeaderboard();
+  }, [stepper3]);
   useEffect(() => {
     let timer;
     if (stepper2) {
       if (finalScore === 0) {
         setShowMessage(true);
         settextencouragement(
-          `Allez ${userData.nameuser}, on vise le sommet de la montagne!`
+          `Allez ${
+            user ? user.nameuser : ""
+          }, on vise le sommet de la montagne!`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -127,7 +127,9 @@ const Main = () => {
       }
       if (finalScore === 5) {
         setShowMessage(true);
-        settextencouragement(`courage ${userData.nameuser},tu avance bien!`);
+        settextencouragement(
+          `courage ${user ? user.nameuser : ""},tu avance bien!`
+        );
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
@@ -135,7 +137,9 @@ const Main = () => {
       if (finalScore === 10) {
         setShowMessage(true);
         settextencouragement(
-          `quelle performance ${userData.nameuser}, tu avances beaucoup!`
+          `quelle performance ${
+            user ? user.nameuser : ""
+          }, tu avances beaucoup!`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -144,7 +148,7 @@ const Main = () => {
       if (finalScore === 15) {
         setShowMessage(true);
         settextencouragement(
-          `bravo ${userData.nameuser},bientôt la moitié du sommet!`
+          `bravo ${user ? user.nameuser : ""},bientôt la moitié du sommet!`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -152,14 +156,18 @@ const Main = () => {
       }
       if (finalScore === 20) {
         setShowMessage(true);
-        settextencouragement(`bravo ${userData.nameuser},tu es un monstre!`);
+        settextencouragement(
+          `bravo ${user ? user.nameuser : ""},tu es un monstre!`
+        );
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
       }
       if (finalScore === 25) {
         setShowMessage(true);
-        settextencouragement(`oh lalala ${userData.nameuser},quelle prouesse!`);
+        settextencouragement(
+          `oh lalala ${user ? user.nameuser : ""},quelle prouesse!`
+        );
         timer = setTimeout(() => {
           setShowMessage(false);
         }, 3000);
@@ -167,7 +175,9 @@ const Main = () => {
       if (finalScore === 30) {
         setShowMessage(true);
         settextencouragement(
-          `rien à dire,bravo ${userData.nameuser},un petit effort pour le sommet`
+          `rien à dire,bravo ${
+            user ? user.nameuser : ""
+          },un petit effort pour le sommet`
         );
         timer = setTimeout(() => {
           setShowMessage(false);
@@ -186,7 +196,7 @@ const Main = () => {
     }
   }, [stepper2, finalScore]);
 
-  const handlechoice = (option) => {
+  const handlechoice = async (option) => {
     if (selectedOption || quizFinished) {
       return; //empeche de choisir plusieurs fois
     }
@@ -196,7 +206,7 @@ const Main = () => {
       playSound(zik1);
       setUserResponse("Bonne reponse");
       setCorrectOption(false);
-      setTimeout(() => {
+      setTimeout(async () => {
         setUserResponse("");
         setSelectedOption(null);
         setCorrectOption(false);
@@ -204,10 +214,8 @@ const Main = () => {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         // Vérifier si c'est la dernière question
         if (isLastQuestion) {
-          // Fin du quiz - réussite
-          const updatedLeaderboard = saveScoreToStorage(
-            playerName,
-            newScore,
+          const updatedLeaderboard = await saveScoreToStorage(
+            finalScore + 1,
             Question.length
           );
           setLeaderboard(updatedLeaderboard);
@@ -223,14 +231,13 @@ const Main = () => {
       playSound(zik2);
       setUserResponse("Mauvaise reponse");
       setCorrectOption(true);
-      setTimeout(() => {
+      setTimeout(async () => {
         setUserResponse("");
         setSelectedOption(null);
         setCorrectOption(false);
         //setFinalScore(0);
         // Sauvegarder le score actuel même en cas d'échec
-        const updatedLeaderboard = saveScoreToStorage(
-          playerName,
+        const updatedLeaderboard = await saveScoreToStorage(
           finalScore,
           Question.length
         );
@@ -294,8 +301,7 @@ const Main = () => {
     if (position === 3) return "3eme";
     return `${position}eme`;
   };
-  //appel de localstorage
-  const userData = JSON.parse(localStorage.getItem("user"));
+
   return (
     <div className="headerQuiz">
       <div className="headerstep">
@@ -316,7 +322,7 @@ const Main = () => {
             </div>
             <div className="topic-button">
               <Button className="choice" onClick={handlenext1}>
-                {`Commencer le Quiz ${userData?.nameuser || ""}`}
+                {`Commencer le Quiz ${user ? user.nameuser : ""}`}
               </Button>
             </div>
           </div>
@@ -388,36 +394,40 @@ const Main = () => {
             </div>
 
             <div className="nameclassement" style={{ padding: "0px 0" }}>
-              {leaderboard.map((player, index) => (
-                <div
-                  key={player.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px",
-                    margin: "5px 0",
-                    background: index < 3 ? "#fff3cd" : "#f8f9fa",
-                    border:
-                      index === 0
-                        ? "2px solid gold"
-                        : index === 1
-                        ? "2px solid silver"
-                        : index === 2
-                        ? "2px solid #cd7f32"
-                        : "1px solid #ddd",
-                    borderRadius: "5px",
-                  }}
-                >
-                  <span style={{ fontWeight: "bold" }}>
-                    {getOrdinal(index + 1)} {player.playerName}
-                  </span>
-                  <span>
-                    {player.score}/{player.total} ({player.percentage}%) -
-                    {player.date}
-                  </span>
-                </div>
-              ))}
+              {Array.isArray(leaderboard) && leaderboard.length > 0 ? (
+                leaderboard.map((player, index) => (
+                  <div
+                    key={player.iduser}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px",
+                      margin: "5px 0",
+                      background: index < 3 ? "#fff3cd" : "#f8f9fa",
+                      border:
+                        index === 0
+                          ? "2px solid gold"
+                          : index === 1
+                          ? "2px solid silver"
+                          : index === 2
+                          ? "2px solid #cd7f32"
+                          : "1px solid #ddd",
+                      borderRadius: "5px",
+                    }}
+                  >
+                    <span style={{ fontWeight: "bold" }}>
+                      {getOrdinal(index + 1)} {player.user?.nameuser}
+                    </span>
+                    <span>
+                      {player.score}/{Question.length}
+                    </span>
+                    <span>{player.percentage}%</span>
+                  </div>
+                ))
+              ) : (
+                <p>Aucun classement disponible</p>
+              )}
             </div>
             <div className="topic-button">
               <Button className="choice" onClick={handlenext2}>

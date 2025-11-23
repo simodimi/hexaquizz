@@ -1,10 +1,11 @@
-const User = require("../models/User");
+const User = require("../models/User/User");
+const Score = require("../models/User/Score");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const Mailjet = require("node-mailjet");
-const { NOEXPAND } = require("sequelize/lib/table-hints");
-const { parse } = require("path");
+
+const sequelize = require("../config/bdd");
 
 //génération d'un token jwt
 const generateToken = (user) => {
@@ -304,6 +305,169 @@ const resetPassword = async (req, res) => {
       .json({ message: "Une erreur est survenue lors de la mise à jour" });
   }
 };
+const checkTokenValidity = async (req, res) => {
+  try {
+    // Ici verifyToken a déjà été exécuté (middleware), et req.admin est present
+    const user = await User.findByPk(req.user.iduser, {
+      attributes: ["iduser", "nameuser", "mailuser"],
+    });
+    if (!user) {
+      return res
+        .status(401)
+        .json({ valid: false, message: "Utilisateur introuvable" });
+    }
+    // Token valide
+    return res.status(200).json({
+      valid: true,
+      user: {
+        iduser: user.iduser,
+        nameuser: user.nameuser,
+        mailuser: user.mailuser,
+      },
+    });
+  } catch (error) {
+    console.error("checkTokenValidity error:", error);
+    return res
+      .status(500)
+      .json({ valid: false, message: "Erreur de vérification" });
+  }
+};
+const verifyToken = async (req, res, next) => {
+  try {
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({ message: "Token manquant" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.iduser);
+    if (!user) {
+      return res.status(401).json({ message: "user non valide" });
+    }
+
+    // Attacher les infos utiles à req
+    req.user = {
+      iduser: user.iduser,
+      nameuser: user.nameuser,
+      mailuser: user.mailuser,
+    };
+
+    next();
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expiré" });
+    }
+    console.error("verifyToken error:", error);
+    return res.status(401).json({ message: "Token invalide" });
+  }
+};
+//gestion des points et score
+const saveScore = async (req, res) => {
+  try {
+    const { score, totalQuestions, percentage, topic } = req.body;
+
+    const newScore = await Score.create({
+      score,
+      totalQuestions,
+      percentage,
+      iduser: req.user.iduser, // Récupéré du middleware d'authentification
+    });
+
+    // Mettre à jour le meilleur score de l'utilisateur
+    const user = await User.findByPk(req.user.iduser);
+    if (score > user.bestScore) {
+      user.bestScore = score;
+      await user.save();
+    }
+
+    return res.status(201).json({
+      message: "Score sauvegardé avec succès",
+      score: newScore,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+const getUserScores = async (req, res) => {
+  try {
+    const scores = await Score.findAll({
+      where: { iduser: req.user.iduser },
+      order: [["dateplayed", "DESC"]],
+      limit: 10, // 10 dernières parties
+    });
+
+    return res.status(200).json(scores);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+/*const getLeaderboard = async (req, res) => {
+  try {
+    const { User, Score } = require("../models/unit").models;
+    const leaderboard = await User.findAll({
+      attributes: [
+        "iduser",
+        "nameuser",
+        "bestScore",
+        [sequelize.fn("COUNT", sequelize.col("scores.id")), "gamesPlayed"],
+      ],
+      include: [
+        {
+          model: Score,
+          as: "scores",
+          attributes: [], // On ne veut pas les données des scores, juste compter
+          required: false,
+        },
+      ],
+      group: ["User.iduser"],
+      order: [["bestScore", "DESC"]],
+      limit: 10,
+      subQuery: false,
+    });
+
+    return res.status(200).json(leaderboard);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};*/
+const getLeaderboard = async (req, res) => {
+  try {
+    const { User, Score } = require("../models/unit").models;
+
+    const leaderboard = await Score.findAll({
+      attributes: [
+        "iduser",
+        "score",
+        "percentage",
+        "totalQuestions",
+        "dateplayed",
+      ],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["iduser", "nameuser"],
+          required: true,
+        },
+      ],
+      order: [
+        ["score", "DESC"],
+        ["dateplayed", "DESC"],
+      ],
+      limit: 10,
+    });
+
+    return res.status(200).json(leaderboard);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
 
 module.exports = {
   createUser,
@@ -314,4 +478,9 @@ module.exports = {
   forgotPassword,
   verifyCode,
   resetPassword,
+  checkTokenValidity,
+  verifyToken,
+  saveScore,
+  getUserScores,
+  getLeaderboard,
 };

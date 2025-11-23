@@ -25,4 +25,4 @@ sequelize
     console.log("Connexion à la base de données MySQL echouée");
   });
 
-module.export = sequelize;
+module.exports = sequelize;

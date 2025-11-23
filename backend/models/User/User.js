@@ -1,4 +1,4 @@
-const sequelize = require("../config/bdd");
+const sequelize = require("../../config/bdd");
 const { DataTypes } = require("sequelize");
 
 const User = sequelize.define("User", {
@@ -26,6 +26,11 @@ const User = sequelize.define("User", {
   inscriptiondate: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
+  },
+  bestScore: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
   },
 });
 module.exports = User;

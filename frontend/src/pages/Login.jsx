@@ -3,7 +3,7 @@ import "../pages/quizz.css";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import { toast } from "react-toastify";
-
+import { useAuth } from "../components/AuthContextUser";
 const Login = () => {
   const [showerror, setShowerror] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -12,10 +12,11 @@ const Login = () => {
     passworduser: "",
   });
   const navigate = useNavigate();
+  const { login, logout, user, isAuthenticated } = useAuth();
   const handlechange = (e) => {
     setformdata({ ...formdata, [e.target.name]: e.target.value });
   };
-  const handlesubmit = (e) => {
+  const handlesubmit = async (e) => {
     e.preventDefault();
     if (!formdata.mailuser || !formdata.passworduser) {
       setShowerror(true);
@@ -30,24 +31,34 @@ const Login = () => {
       toast.error("Veuillez entrer une adresse mail valide");
       return;
     }
-    const userData = {
+    /* const userData = {
       mailuser: formdata.mailuser,
       passworduser: formdata.passworduser,
       date: new Date().toLocaleDateString("fr-FR"),
     };
-    localStorage.setItem("user", JSON.stringify(userData));
-    toast.success("Connexion reussie");
-    navigate("/jeux");
-    console.log({
-      mailuser: formdata.mailuser,
-      passworduser: formdata.passworduser,
-    });
-    setShowerror(false);
-    setErrorMessage("");
-    setformdata({
-      mailuser: "",
-      passworduser: "",
-    });
+    localStorage.setItem("user", JSON.stringify(userData));*/
+
+    try {
+      const res = await login(formdata.mailuser, formdata.passworduser);
+      toast.success("Connexion reussie");
+      navigate("/jeux");
+      console.log({
+        mailuser: formdata.mailuser,
+        passworduser: formdata.passworduser,
+      });
+      setShowerror(false);
+      setErrorMessage("");
+      setformdata({
+        mailuser: "",
+        passworduser: "",
+      });
+    } catch (error) {
+      setShowerror(true);
+      const errorMessage =
+        error.response?.data?.message || "Erreur de connexion";
+      setErrorMessage(errorMessage);
+      toast.error(errorMessage);
+    }
   };
 
   return (
